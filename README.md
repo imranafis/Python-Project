@@ -1,4 +1,4 @@
-# 🎮 Tetris Game
+#  Tetris Game
 
 A simple Tetris game built using Python and Pygame.
 
