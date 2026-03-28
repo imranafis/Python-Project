@@ -2,7 +2,7 @@
 
 A simple Tetris game built using Python and Pygame.
 
-## 🎮 Controls
+##  Controls
 
 - Left / Right Arrow → Move
 - Up Arrow → Rotate
@@ -10,14 +10,14 @@ A simple Tetris game built using Python and Pygame.
 - Space → Instant drop
 - R → Restart
 
-## ✨ Features
+##  Features
 
 - Classic Tetris gameplay
 - Score and level system
 - Next block preview
 - Game over screen
 
-## 📦 Requirements
+##  Requirements
 
 - Python
 - Pygame
