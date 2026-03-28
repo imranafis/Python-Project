@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 pygame.init()
 
@@ -17,6 +18,24 @@ BLACK  = (0,   0,   0)
 WHITE  = (255, 255, 255)
 GRAY   = (40,  40,  40)
 RED    = (240, 0,   0)
+
+HIGHSCORE_FILE = "highscore.txt"
+
+def load_high_score():
+    if os.path.exists(HIGHSCORE_FILE):
+        try:
+            with open(HIGHSCORE_FILE, "r") as f:
+                return int(f.read().strip())
+        except (ValueError, IOError):
+            return 0
+    return 0
+
+def save_high_score(score):
+    try:
+        with open(HIGHSCORE_FILE, "w") as f:
+            f.write(str(score))
+    except IOError:
+        pass
 
 SHAPES = {
     'I': [
@@ -135,7 +154,7 @@ def draw_block(surface, r, c, color, alpha=255):
         lighter = tuple(min(v+60, 255) for v in color)
         pygame.draw.rect(surface, lighter, (x+1, y+1, CELL-2, 4))
 
-def draw_board(board, block, next_block, score, level, lines, game_over):
+def draw_board(board, block, next_block, score, level, lines, game_over, high_score):
     screen.fill((20, 20, 20))
 
     for r in range(ROWS):
@@ -154,31 +173,43 @@ def draw_board(board, block, next_block, score, level, lines, game_over):
 
     px = WIDTH + 10
     small = pygame.font.SysFont(None, 25)
+
     screen.blit(font.render("SCORE", True, WHITE),         (px, 20))
     screen.blit(font.render(str(score), True, (0,240,240)),(px, 45))
-    screen.blit(font.render("LEVEL", True, WHITE),         (px, 100))
-    screen.blit(font.render(str(level), True, (240,160,0)),(px, 125))
-    screen.blit(font.render("LINES", True, WHITE),         (px, 180))
-    screen.blit(font.render(str(lines), True, (0,240,0)),  (px, 205))
 
-    screen.blit(font.render("NEXT", True, WHITE), (px, 265))
+    # High score display — gold color, with a crown indicator if beaten
+    hs_color = (255, 215, 0) if score < high_score else (255, 80, 80)
+    hs_label = "BEST" if score < high_score else "BEST!"
+    screen.blit(font.render(hs_label, True, WHITE),        (px, 75))
+    screen.blit(font.render(str(high_score), True, hs_color), (px, 98))
+
+    screen.blit(font.render("LEVEL", True, WHITE),         (px, 130))
+    screen.blit(font.render(str(level), True, (240,160,0)),(px, 155))
+    screen.blit(font.render("LINES", True, WHITE),         (px, 205))
+    screen.blit(font.render(str(lines), True, (0,240,0)),  (px, 228))
+
+    screen.blit(font.render("NEXT", True, WHITE), (px, 275))
     for dr, dc in SHAPES[next_block['shape']][0]:
         pygame.draw.rect(screen, next_block['color'],
-                         (px + dc*CELL+1, 295 + dr*CELL+1, CELL-2, CELL-2), border_radius=3)
+                         (px + dc*CELL+1, 305 + dr*CELL+1, CELL-2, CELL-2), border_radius=3)
 
     for i, tip in enumerate([" ^  Rotate", "< > Move", " v  Fast", "Space Drop", "R Restart"]):
-        screen.blit(small.render(tip, True, (140,140,140)), (px, 420 + i*50))
+        screen.blit(small.render(tip, True, (140,140,140)), (px, 430 + i*28))
 
     if game_over:
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         screen.blit(overlay, (0, 0))
-        screen.blit(font.render("GAME  OVER",        True, RED),   (WIDTH / 2, HEIGHT / 2))
-        screen.blit(font.render("Press R to restart", True, WHITE), (WIDTH / 2 - 40, HEIGHT / 2 + 30))
+        screen.blit(font.render("GAME  OVER",        True, RED),   (WIDTH // 2 - 40, HEIGHT // 2))
+        screen.blit(font.render("Press R to restart", True, WHITE), (WIDTH // 2 - 60, HEIGHT // 2 + 30))
+        if score >= high_score and score > 0:
+            screen.blit(font.render("NEW HIGH SCORE!", True, (255, 215, 0)), (WIDTH // 2 - 60, HEIGHT // 2 + 60))
 
     pygame.display.flip()
 
 def main():
+    high_score = load_high_score()
+
     board      = [[None] * COLS for _ in range(ROWS)]
     block      = new_block()
     next_block = new_block()
@@ -193,11 +224,15 @@ def main():
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if score > high_score:
+                    save_high_score(score)
                 pygame.quit()
                 return
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
+                    if score > high_score:
+                        save_high_score(score)
                     main(); return
 
                 if game_over:
@@ -243,8 +278,11 @@ def main():
                 else:
                     board, block, next_block, score, lines, level, fall_speed, game_over = \
                         after_lock(board, block, next_block, score, lines, level, fall_speed)
+                    if game_over and score > high_score:
+                        high_score = score
+                        save_high_score(high_score)
 
-        draw_board(board, block, next_block, score, level, lines, game_over)
+        draw_board(board, block, next_block, score, level, lines, game_over, high_score)
         clock.tick(60)
 
 if __name__ == "__main__":
